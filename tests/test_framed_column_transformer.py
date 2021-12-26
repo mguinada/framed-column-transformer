@@ -3,6 +3,8 @@
 import pytest
 
 from framedct.framed_column_transformer import FramedColumnTransfomer
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LinearRegression
 from sklearn.pipeline import Pipeline
 from sklearn import preprocessing, impute
 import pandas as pd
@@ -37,7 +39,6 @@ def data():
             "Country": ["Germany", "England", "Canada", "Canada", "France"],
         }
     )
-
 
 num_features = ["Age", "Height"]
 cat_features = ["Gender", "Country"]
@@ -198,3 +199,84 @@ def test_column_indexes(data):
         "x0_Germany",
         "Gender",
     ]
+
+def test_delegation_to_column_transformer():
+    ct = FramedColumnTransfomer(
+        transformers=[
+            ("numerical_pipeline", numerical_pipeline, num_features),
+            ("categorical_pipeline", categorical_pipeline, cat_features),
+        ]
+    )
+
+    assert ct.sparse_threshold == 0.3
+    assert isinstance(ct.transformers, list)
+
+
+def test_failed_delegation_to_column_transformer():
+    ct = FramedColumnTransfomer(
+        transformers=[
+            ("numerical_pipeline", numerical_pipeline, num_features),
+            ("categorical_pipeline", categorical_pipeline, cat_features),
+        ]
+    )
+
+    with pytest.raises(AttributeError) as e_info:
+        ct.no_such_method
+
+def test_classification_pipeline(data):
+    labels = [0, 1, 1, 0, 1]
+
+    ct = FramedColumnTransfomer(
+        transformers=[
+            ("numerical_pipeline", numerical_pipeline, num_features),
+            ("categorical_pipeline", categorical_pipeline, cat_features),
+        ]
+    )
+
+    pipeline = Pipeline([
+        ("transformer", ct),
+        ("classifier", RandomForestClassifier())
+    ])
+
+    X_test = pd.DataFrame(
+        {
+            "Age": [15],
+            "Height": [150],
+            "Gender": ["Female"],
+            "Country": ["Germany"],
+        }
+    )
+
+    pipeline.fit(data, labels)
+    predictions = pipeline.predict(X_test)
+
+    assert len(predictions) == len(X_test)
+
+def test_regression_pipeline(data):
+    labels = np.array([0, 10, 33, 45, 100])
+
+    ct = FramedColumnTransfomer(
+        transformers=[
+            ("numerical_pipeline", numerical_pipeline, num_features),
+            ("categorical_pipeline", categorical_pipeline, cat_features),
+        ]
+    )
+
+    pipeline = Pipeline([
+        ("transformer", ct),
+        ("classifier", LinearRegression())
+    ])
+
+    X_test = pd.DataFrame(
+        {
+            "Age": [15],
+            "Height": [150],
+            "Gender": ["Female"],
+            "Country": ["Germany"],
+        }
+    )
+
+    pipeline.fit(data, labels)
+    predictions = pipeline.predict(X_test)
+
+    assert len(predictions) == len(X_test)

@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from functools import wraps
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
@@ -132,6 +133,35 @@ class FramedColumnTransfomer(BaseEstimator, TransformerMixin):
                 )
 
         return feature_names
+
+    def __getattr__(self, attr, *args, **kwargs):
+        """As a wrapper to ColumnTransformer, we want to delegate everything that
+        is not part of our interface"""
+
+        if attr in dir(self):
+            return super().__getattr__(attr, *args, **kwargs)
+        elif attr in dir(self.column_transformer):
+            return self.__bind_and_dispatch__(
+                self.column_transformer, attr, *args, **kwargs
+            )
+        else:
+            raise AttributeError(
+                "'% s' object has no attribute '% s'" % (self.__class__.__name__, attr)
+            )
+
+    def __bind_and_dispatch__(self, receiver, attr, *args, **kwargs):
+        """if `attr` is callable, wrap it and bind it, else, return the attribute's value"""
+        method = getattr(receiver, attr)
+
+        if callable(method):
+            @wraps(method)
+            def delegated_method(*args, **kwargs):
+                return method(*args, **kwargs)
+
+            setattr(self, attr, delegated_method)
+            return delegated_method
+        else:
+            return method
 
     def fit(self, X, y=None):
         """Fit all transformers using X.
