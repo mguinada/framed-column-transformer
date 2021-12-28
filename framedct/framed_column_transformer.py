@@ -91,7 +91,7 @@ class FramedColumnTransfomer(BaseEstimator, TransformerMixin):
             verbose_feature_names_out=verbose_feature_names_out,
         )
 
-    def __get_feature_out(self, name, estimator, features_in):
+    def __get_feature_out(self, estimator, features_in):
         if hasattr(estimator, "get_feature_names_out"):
             return estimator.get_feature_names_out(
                 None if any(isinstance(e, int) for e in features_in) else features_in
@@ -108,16 +108,16 @@ class FramedColumnTransfomer(BaseEstimator, TransformerMixin):
         else:
             return features_in
 
-    def __get_pipeline_feature_names(self, name, pipeline, columns):
+    def __get_pipeline_feature_names(self, pipeline, columns):
         current_cols = columns
 
         for step in pipeline:
-            current_cols = self.__get_feature_out(name, step, current_cols)
+            current_cols = self.__get_feature_out(step, current_cols)
 
         return current_cols
 
-    def __get_transformer_feature_names(self, name, transformer, columns):
-        return self.__get_feature_out(name, transformer, columns)
+    def __get_transformer_feature_names(self, transformer, columns):
+        return self.__get_feature_out(transformer, columns)
 
     def _get_feature_names(self):
         feature_names = []
@@ -125,11 +125,11 @@ class FramedColumnTransfomer(BaseEstimator, TransformerMixin):
         for name, estimator, columns in self.column_transformer.transformers_:
             if isinstance(estimator, Pipeline):
                 feature_names.extend(
-                    self.__get_pipeline_feature_names(name, estimator, columns)
+                    self.__get_pipeline_feature_names(estimator, columns)
                 )
             else:
                 feature_names.extend(
-                    self.__get_transformer_feature_names(name, estimator, columns)
+                    self.__get_transformer_feature_names(estimator, columns)
                 )
 
         return feature_names
