@@ -122,7 +122,7 @@ class FramedColumnTransfomer(BaseEstimator, TransformerMixin):
     def _get_feature_names(self):
         feature_names = []
 
-        for name, estimator, columns in self.column_transformer.transformers_:
+        for _, estimator, columns in self.column_transformer.transformers_:
             if isinstance(estimator, Pipeline):
                 feature_names.extend(
                     self.__get_pipeline_feature_names(estimator, columns)
