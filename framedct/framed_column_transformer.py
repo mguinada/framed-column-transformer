@@ -202,8 +202,14 @@ class FramedColumnTransfomer(BaseEstimator, TransformerMixin):
         transformed_X = self.column_transformer.transform(X)
 
         if isinstance(transformed_X, np.ndarray):
-            return pd.DataFrame(transformed_X, index=X.index, columns=self.columns)
+            return pd.DataFrame(
+                transformed_X,
+                index=X.index,
+                columns=self.columns
+            )
         else:
             return pd.DataFrame.sparse.from_spmatrix(
-                transformed_X, index=X.index, columns=self.transformed_col_names
+                transformed_X,
+                index=X.index,
+                columns=self.columns
             )
